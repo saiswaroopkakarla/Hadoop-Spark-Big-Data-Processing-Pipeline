@@ -1,154 +1,137 @@
-# CSL7110 — ML with Big Data — Assignment 1
+# Hadoop - Spark - Big Data Processing Pipeline
 
-Name: Sai Swaroop  
-Roll No: M25DE1023  
-Course: CSL7110 — ML with Big Data
+An end-to-end big data assignment demonstrating **Apache Hadoop MapReduce** and **Apache Spark** pipelines on real text corpora — covering word count, TF-IDF feature engineering, cosine similarity, and influence network modelling.
 
----
-
-This assignment demonstrates end-to-end Big Data processing using:
-
-- Apache Hadoop (HDFS + MapReduce)
-- Apache Spark (DataFrames + ML features)
-- Custom MapReduce implementation
-- TF-IDF feature engineering
-- Cosine similarity computation
-- Influence network modeling
-
-All tasks were executed on Ubuntu 22.04 (WSL2) single-node setup.
+**Course:** CSL7110 ML with Big Data, IIT Jodhpur  
+**Environment:** Ubuntu 22.04 (WSL2), single-node setup
 
 ---
 
-# Repository Structure
+## Repository Structure
 
-spark_assign/
-metadata_extraction.py
-tfidf_similarity.py
-author_network.py
-
-wc_project/
-WordCount.java
-wc.jar
-
-
----
-
-# Hadoop Tasks Completed
-
-## Hadoop Setup
-- Installed Hadoop 3.3.6
-- Configured JAVA_HOME and Hadoop environment
-- Configured core-site.xml, hdfs-site.xml, yarn-site.xml
-- Started HDFS and YARN services
-- Verified using jps
-
-## WordCount (Built-in)
-Executed Hadoop example WordCount job on sample dataset.
-
-## Custom WordCount (Java MapReduce)
-Implemented custom Mapper and Reducer:
-- punctuation removal
-- lowercase normalization
-- tokenization
-- aggregation
-
-Compiled and packaged into JAR and executed successfully.
-
-## Large Dataset Experiment
-- Used Project Gutenberg book (~8MB)
-- Uploaded to HDFS
-- Executed custom WordCount
-- Measured job execution time
-- Modified split size to observe mapper count changes
+```
+.
+├── spark_assign/
+│   ├── metadata_extraction.py   # Spark DataFrame regex metadata extraction
+│   ├── tfidf_similarity.py      # TF-IDF pipeline + cosine similarity (Spark UDF)
+│   └── author_network.py        # Influence network from similarity edge list
+│
+├── wc_project/
+│   ├── WordCount.java            # Custom MapReduce Mapper + Reducer
+│   ├── wc.jar                    # Compiled JAR (ready to run)
+│   └── mywc.txt                  # Sample input text
+│
+└── README.md
+```
 
 ---
 
-# Spark Tasks Completed
+## Part 1 — Hadoop MapReduce
 
-## Spark Setup
-- Installed Spark 3.5.x
-- Verified with spark-submit and pyspark
+### Built-in WordCount
 
-## Metadata Extraction
-Script: `metadata_extraction.py`
+Executed Hadoop's example WordCount job on a sample dataset to validate HDFS + YARN setup.
 
-- Loaded book text into Spark DataFrame
-- Extracted metadata using regex
-- Observed regex limitations due to inconsistent headers
-- Implemented fallback title extraction
-- Computed simple metadata statistics
+### Custom WordCount (Java MapReduce)
 
----
+Implemented a custom `Mapper` and `Reducer` in Java with:
+- Lowercase normalisation
+- Punctuation removal
+- Tokenisation and aggregation
 
-## TF-IDF Feature Engineering
-Script: `tfidf_similarity.py`
+**Run:**
+```bash
+hadoop jar wc_project/wc.jar WordCount /input /output
+```
 
-Pipeline:
-- text cleaning
-- tokenization
-- stopword removal
-- HashingTF
-- IDF model
-- TF-IDF vector generation
+### Large Dataset Experiment
+
+Ran custom WordCount on a Project Gutenberg book (~8 MB) uploaded to HDFS. Measured execution time and observed how modifying the HDFS **split size** changes the number of spawned Mappers demonstrating parallelism control.
 
 ---
 
-## Cosine Similarity
-- Implemented cosine similarity using Spark UDF
-- Compared TF-IDF vectors
-- Produced similarity scores between documents
+## Part 2 Apache Spark
 
----
+### Metadata Extraction (`metadata_extraction.py`)
 
-## Influence Network
-Script: `author_network.py`
+Loads book text into a Spark DataFrame and extracts metadata (title, author) using regex. Implements a fallback title extractor to handle inconsistent headers and computes simple metadata statistics.
 
-- Built similarity edge list
-- Constructed node list
-- Computed influence score as sum of similarity weights
-- Demonstrated graph-style relationship modeling
-
----
-
-# Key Concepts Demonstrated
-
-- HDFS storage model
-- MapReduce execution flow
-- Split size impact on parallelism
-- Replication factor tradeoffs
-- Regex extraction limitations
-- TF vs IDF importance
-- Vector similarity measurement
-- Graph influence scoring
-
----
-
-# How to Run
-
-## Hadoop WordCount
-
-hadoop jar wc.jar WordCount /input /output
-
-
-## Spark Metadata Extraction
-
+```bash
 spark-submit spark_assign/metadata_extraction.py
+```
 
+### TF-IDF Feature Engineering (`tfidf_similarity.py`)
 
-## Spark TF-IDF
+Full NLP pipeline using Spark MLlib:
 
+```
+Raw text → Tokenization → Stopword removal → HashingTF → IDF → TF-IDF vectors
+```
+
+Cosine similarity is computed between document vectors using a **Spark UDF**, producing pairwise similarity scores.
+
+```bash
 spark-submit spark_assign/tfidf_similarity.py
+```
 
+### Influence Network (`author_network.py`)
 
-## Spark Network
+Constructs a graph-style influence model from TF-IDF similarity scores:
+- Builds a similarity edge list between documents
+- Constructs a node list
+- Computes an **influence score** per node as the sum of its outgoing similarity weights
 
+```bash
 spark-submit spark_assign/author_network.py
-
+```
 
 ---
 
-# Notes
+## Setup
 
-- All scripts executed using spark-submit
-- Outputs and execution logs are included in the assignment report PDF
+### Prerequisites
 
+- Hadoop 3.3.6
+- Apache Spark 3.5.x
+- Java 8+
+- Python 3.x + `pyspark`
+
+### Hadoop Configuration
+
+Key files configured for single-node pseudo-distributed mode:
+- `core-site.xml` — NameNode URI
+- `hdfs-site.xml` — replication factor = 1
+- `yarn-site.xml` — ResourceManager settings
+
+Verify setup:
+```bash
+jps   # Should show NameNode, DataNode, ResourceManager, NodeManager
+```
+
+### Python Dependencies
+
+```bash
+pip install pyspark
+```
+
+---
+
+## Key Concepts Demonstrated
+
+| Concept | Where |
+|---|---|
+| HDFS storage model | WordCount experiment |
+| MapReduce execution flow | Custom Java MapReduce |
+| Split size impact on parallelism | Large dataset experiment |
+| Replication factor tradeoffs | HDFS configuration |
+| Regex extraction + fallback logic | metadata_extraction.py |
+| TF vs IDF weighting intuition | tfidf_similarity.py |
+| Vector cosine similarity via UDF | tfidf_similarity.py |
+| Graph influence scoring | author_network.py |
+
+---
+
+## Author
+
+**Kakarla Sai Swaroop**  
+M25DE1023 IIT Jodhpur, M.Tech Data Engineering
